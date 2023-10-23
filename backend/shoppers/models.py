@@ -7,6 +7,7 @@ def avatar_directory_path(instance: "Shopper", filename: str) -> str:
             pk=instance.pk, filename=filename
             )
 
+
 class Shopper(models.Model):
     username = models.OneToOneField(User, on_delete=models.CASCADE)
     first_name = models.CharField(max_length=200, verbose_name="Имя")
