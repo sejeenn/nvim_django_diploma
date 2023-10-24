@@ -20,12 +20,13 @@ class Shopper(models.Model):
             blank=True,
             upload_to=avatar_directory_path,
             )
+
     def get_avatar(self):
         avatar = {
                 "src": self.avatar.url,
-                "alt": self.avatar.name,
+                "alt": self.avatar.first_name,
                 }
         return avatar
 
     def __str__(self):
-        return self.name
+        return self.first_name
