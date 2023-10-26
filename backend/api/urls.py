@@ -19,4 +19,6 @@ urlpatterns = [
         path('profile', ProfileAPIView.as_view(), name='profile'),
         path('profile/avatar', AvatarChangeAPIView.as_view(), name='avatar_change'),
         path('profile/password', PasswordChangeAPIView.as_view(), name='password_change'),
-        ]
+
+
+]

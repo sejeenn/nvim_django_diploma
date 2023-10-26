@@ -99,10 +99,10 @@ class AvatarChangeAPIView(APIView):
 class PasswordChangeAPIView(APIView):
     def post(self, request):
         user = request.user
-        body = json.loads(request.body)
-        print(body['currentPassword'])
-        if user.check_password(body['currentPassword']):
-            password = body['newPassword']
+        data = json.loads(request.body)
+        print(request.data)
+        if user.check_password(data['currentPassword']):
+            password = data['newPassword']
             user.set_password = password
             user.save()
         else:
