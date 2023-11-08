@@ -2,11 +2,11 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-def avatar_image_directory_path(instance: "Profile", filename: str) -> str:
-    return f"profiles/profile_{instance.pk}/avatar/{filename}"
+def avatar_image_directory_path(instance: "ProfileUser", filename: str):
+    return f"profile/profile_{instance.pk}/avatar/{filename}"
 
 
-class Profile(models.Model):
+class ProfileUser(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=200, verbose_name="Имя")
     surname = models.CharField(max_length=200, verbose_name="Фамилия")

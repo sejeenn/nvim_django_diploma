@@ -1,9 +1,9 @@
 from django import forms
 
-from .models import Profile
+from .models import ProfileUser
 
 
 class ProfileForm(forms.ModelForm):
     class Meta:
-        model = Profile
+        model = ProfileUser
         fields = ('avatar',)

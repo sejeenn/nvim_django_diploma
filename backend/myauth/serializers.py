@@ -1,11 +1,11 @@
 from rest_framework import serializers
 
-from .models import Profile
+from .models import ProfileUser
 
 
 class ProfileSerializer(serializers.Serializer):
     class Meta:
-        model = Profile
+        model = ProfileUser
         fields = '__all__'
 
     def to_representation(self, instance):
