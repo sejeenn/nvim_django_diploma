@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'frontend',
     'myauth',
     'api',
+    'shopapp',
 ]
 
 MIDDLEWARE = [

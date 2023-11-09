@@ -81,7 +81,10 @@ class ProfileUserAPIView(APIView):
         информацию о нём.
         """
         profile = ProfileUser.objects.get(user=request.user)
+        print(profile.avatar)
         serializer = ProfileSerializer(profile)
+        print(serializer.data)
+
         return Response(serializer.data)
 
     def post(self, request):
@@ -128,9 +131,9 @@ class AvatarChangeAPIView(APIView):
         avatar_path = os.path.join(settings.MEDIA_ROOT, str(user_profile.avatar))
 
         # если получили новый файл аватара, то удалим
-        # старый, если он конечно доступен
+        # старый, если он конечно доступен и это не аватарка по-умолчанию
         if avatar_file:
-            if os.path.isfile(avatar_path):
+            if os.path.isfile(avatar_path) and user_profile.avatar != 'avatar_default.png':
                 os.remove(avatar_path)
 
         form = ProfileForm(request.POST, request.FILES, instance=user_profile)
