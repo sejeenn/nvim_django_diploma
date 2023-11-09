@@ -1,8 +1,11 @@
 import json
+import os
 
+from django.conf import settings
 from django.contrib.auth import logout, login, authenticate, hashers
 from django.contrib.auth.models import User
 from django.http.response import HttpResponse, JsonResponse
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -52,8 +55,14 @@ class SignUpAPIView(APIView):
         user = User.objects.create(username=username, email=email)
         user.password = hashers.make_password(password)
         user.save()
-        # Пользователь создан, необходимо создать профиль пользователя
-        ProfileUser.objects.create(user=user, email=email)
+        # Пользователь создан
+
+        # Создадим профиль пользователя, с аватаркой по-умолчанию
+        ProfileUser.objects.create(
+            user=user,
+            email=email,
+            avatar='avatar_default.png'
+        )
 
         if user is not None:
             login(request, user)
@@ -62,12 +71,23 @@ class SignUpAPIView(APIView):
 
 
 class ProfileUserAPIView(APIView):
+    """
+    Класс отвечающий за вывод и редактирование
+    информации о пользователе
+    """
     def get(self, request):
+        """
+        Метод выводит на страницу профиля пользователя
+        информацию о нём.
+        """
         profile = ProfileUser.objects.get(user=request.user)
         serializer = ProfileSerializer(profile)
         return Response(serializer.data)
 
     def post(self, request):
+        """
+        Метод, обновляющий информацию о пользователе
+        """
         full_name = request.data['fullName'].split()
         surname = full_name[0]
         name = full_name[1]
@@ -95,8 +115,45 @@ class ProfileUserAPIView(APIView):
 
 
 class AvatarChangeAPIView(APIView):
+    """
+    Класс отвечающий за смену аватарки пользователя.
+    А так же удаление старого файла аватарки
+    """
+
+    permission_classes = [IsAuthenticated, ]
+
     def post(self, request):
-        form = ProfileForm(request.POST, request.FILES, instance=request.user.profile)
+        user_profile = ProfileUser.objects.get(user=request.user)
+        avatar_file = request.FILES.get('avatar')
+        avatar_path = os.path.join(settings.MEDIA_ROOT, str(user_profile.avatar))
+
+        # если получили новый файл аватара, то удалим
+        # старый, если он конечно доступен
+        if avatar_file:
+            if os.path.isfile(avatar_path):
+                os.remove(avatar_path)
+
+        form = ProfileForm(request.POST, request.FILES, instance=user_profile)
         if form.is_valid():
             form.save()
-            return HttpResponse(status=200)
+            return Response(status=200)
+        return Response(status=500)
+
+
+class ChangePasswordAPIView(APIView):
+    """
+    Класс, отвечающий за смену пароля пользователя
+    """
+
+    permission_classes = [IsAuthenticated, ]
+
+    def post(self, request):
+        user = request.user
+        current_password = request.data.get('currentPassword')
+        new_password = request.data.get('newPassword')
+
+        if user.check_password(current_password):
+            user.set_password(new_password)
+            user.save()
+            return Response(status=200)
+        return Response(status=500)

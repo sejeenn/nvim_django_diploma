@@ -13,11 +13,17 @@ class ProfileUser(models.Model):
     patronymic = models.CharField(max_length=200, verbose_name="Отчество")
     phone = models.CharField(max_length=15, verbose_name="Номер телефона")
     email = models.CharField(max_length=200, verbose_name="Email")
-    avatar = models.ImageField(null=True, blank=True,
-                               upload_to=avatar_image_directory_path)
+    avatar = models.ImageField(
+        null=True,
+        blank=True,
+        upload_to=avatar_image_directory_path
+    )
 
     def get_avatar(self):
-        avatar = {"src": self.avatar.url}
+        avatar = {
+            "src": self.avatar.url,
+            "alt": self.avatar.name,
+        }
         return avatar
 
     def __str__(self):
