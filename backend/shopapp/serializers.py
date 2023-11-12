@@ -12,7 +12,7 @@ class CatalogListSerializer(serializers.Serializer):
         reviews = Review.objects.filter(product_id=instance.id).values_list(
             "rate", flat=True
         )
-        tags = Tag.objects.filter(tag__id=instance.id)
+        tags = Tag.objects.filter(tags__id=instance.id)
 
         if reviews.count() == 0:
             rating = "Пока нет отзывов"

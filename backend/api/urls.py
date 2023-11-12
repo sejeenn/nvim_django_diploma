@@ -12,7 +12,7 @@ from myauth.views import (
 )
 
 from shopapp.views import (
-    CategoriesListView,
+    CategoriesAPIView,
     CatalogListAPIView,
 )
 
@@ -28,6 +28,6 @@ urlpatterns = [
     path('profile/avatar', AvatarChangeAPIView.as_view()),
     path('profile/password', ChangePasswordAPIView.as_view()),
 
-    path('categories', CategoriesListView.as_view()),
+    path('categories', CategoriesAPIView.as_view()),
     path('catalog', CatalogListAPIView.as_view()),
 ]
