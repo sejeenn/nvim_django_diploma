@@ -1,10 +1,9 @@
-import django_filters.rest_framework
+from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 
 from rest_framework.views import APIView
-# from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
 
@@ -42,11 +41,80 @@ class CategoryListView(APIView):
 
 
 class CatalogListAPIView(APIView):
+    filter_backends = [
+        DjangoFilterBackend,
+        OrderingFilter,
+    ]
+
+    filterset_fields = {
+        'category': ['exact'],
+        'price': ['gte', 'lte'],
+        'freeDelivery': ['exact'],
+        'count': ['gt'],
+        'title': ['icontains'],
+        'tags__name': ['exact'],
+    }
+
+    ordering_fields = [
+        'id',
+        'category__id',
+        'price',
+        'count',
+        'date',
+        'title',
+        'freeDelivery',
+        'rating',
+    ]
+
+    def filter_queryset(self, products):
+        category_id = self.request.GET.get('category')
+        min_price = float(self.request.GET.get('filter[minPrice]', 0))
+        max_price = float(self.request.GET.get('filter[maxPrice]', float('inf')))
+        free_delivery = self.request.GET.get('filter[freeDelivery]', '').lower() == 'true'
+        available = self.request.GET.get('filter[available]', '').lower() == 'true'
+        name = self.request.GET.get('filter[name]', '').strip()
+        tags = self.request.GET.getlist('tags[]')
+
+        if category_id:
+            products = products.filter(category__id=category_id)
+
+        products = products.filter(price__gte=min_price, price__lte=max_price)
+
+        if free_delivery:
+            products = products.filter(freeDelivery=True)
+
+        if available:
+            products = products.filter(count__gt=0)
+
+        if name:
+            products = products.filter(title__icontains=name)
+
+        for tag in tags:
+            products = products.filter(tags__name=tag)
+
+        sort_field = self.request.GET.get('sort', 'id')
+        sort_type = self.request.GET.get('sortType', 'inc')
+
+        if sort_type == 'inc':
+            products = products.order_by(sort_field)
+        else:
+            products = products.order_by('-' + sort_field)
+
+        return products
 
     def get(self, request):
         products = Product.objects.all()
+        filtered_products = self.filter_queryset(products)
+        page_number = int(request.GET.get('currentPage', 1))
+        limit = int(request.GET.get('limit', 20))
+        sort_field = request.GET.get('sort', 'id')
+        sort_type = request.GET.get('sortType', 'asc')
+
+        paginator = Paginator(filtered_products, limit)
+        page = paginator.get_page(page_number)
+
         products_list = []
-        for product in products:
+        for product in page:
             products_list.append(
                 {
                     "id": product.pk,
@@ -69,5 +137,7 @@ class CatalogListAPIView(APIView):
             )
         catalog_data = {
             "items": products_list,
+            "currentPage": page_number,
+            "lastPage": paginator.num_pages
         }
         return Response(catalog_data)
