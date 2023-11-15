@@ -2,18 +2,20 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from rest_framework.generics import ListAPIView
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
 
 from .models import Category, Product
-from .serializers import CatalogListSerializer
+from .serializers import CatalogListSerializer, ProductSerializer
 
 
 class CategoryListView(APIView):
     """
     Класс, отвечающий за обработку категорий и подкатегорий продуктов
+    которые будут отображаться по нажатию на кнопку "All Departments"
     """
 
     def get(self, request):
@@ -41,6 +43,28 @@ class CategoryListView(APIView):
 
 
 class CatalogListAPIView(APIView):
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+
+    filterset_fields = {
+        'category': ['exact'],      # точное соответствие
+        'price': ['gte', 'lte'],    # диапазон от "больше или равно" до "меньше или равно"
+        'freeDelivery': ['exact'],  # точное соответствие
+        'count': ['gt'],            # больше
+        'title': ['icontains'],     # содержит (неточное определение)
+        'tags__name': ['exact'],    # точное соответствие
+    }
+
+    ordering_fields = [
+        'id',
+        'category__id',
+        'price',
+        'count',
+        'date',
+        'title',
+        'freeDelivery',
+        'rating',
+    ]
+
     def filter_queryset(self, products):
         category_id = self.request.GET.get('category')
         min_price = float(self.request.GET.get('filter[minPrice]', 0))
@@ -74,8 +98,7 @@ class CatalogListAPIView(APIView):
         products = Product.objects.all()
         filtered_products = self.filter_queryset(products)
         page_number = int(request.GET.get('currentPage', 1))
-        # limit = int(request.GET.get('limit', 2))
-        limit = 2
+        limit = int(request.GET.get('limit', 20))
         paginator = Paginator(filtered_products, limit)
         page = paginator.get_page(page_number)
         products_list = []
@@ -96,7 +119,7 @@ class CatalogListAPIView(APIView):
                     }
                         for image in product.images.all()],
                     "tags": list(product.tags.values_list('name', flat=True)),
-                    # "reviews": product.re,
+                    # "reviews": product.re...,
                     "rating": float(product.rating),
                 }
             )
@@ -106,3 +129,28 @@ class CatalogListAPIView(APIView):
             "lastPage": paginator.num_pages
         }
         return Response(catalog_data)
+
+
+class PopularListAPIView(ListAPIView):
+    serializer_class = ProductSerializer
+
+    def get_queryset(self):
+        return Product.objects.filter(tags__name_in=['popular'])[:8]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class BannerListAPIView(ListAPIView):
+    serializer_class = ProductSerializer
+
+    def get_queryset(self):
+        return Product.objects.filter(rating__gt=0).order_by('-rating')[:3]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+

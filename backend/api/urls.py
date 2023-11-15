@@ -14,6 +14,7 @@ from myauth.views import (
 from shopapp.views import (
     CategoryListView,
     CatalogListAPIView,
+    BannerListAPIView,
 )
 
 urlpatterns = [
@@ -30,4 +31,5 @@ urlpatterns = [
 
     path('categories', CategoryListView.as_view()),
     path('catalog', CatalogListAPIView.as_view()),
+    path('banners', BannerListAPIView.as_view()),
 ]
