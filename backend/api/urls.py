@@ -15,6 +15,7 @@ from shopapp.views import (
     CategoryListView,
     CatalogListAPIView,
     BannerListAPIView,
+    PopularListAPIView,
 )
 
 urlpatterns = [
@@ -32,4 +33,7 @@ urlpatterns = [
     path('categories', CategoryListView.as_view()),
     path('catalog', CatalogListAPIView.as_view()),
     path('banners', BannerListAPIView.as_view()),
+    path('products/popular', PopularListAPIView.as_view()),
+    # path('products/limited', BannerListAPIView.as_view()),
+
 ]

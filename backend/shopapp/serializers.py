@@ -21,11 +21,12 @@ class CatalogListSerializer(serializers.Serializer):
         else:
             rating = sum(reviews) / reviews.count()
 
+        representation['title'] = instance.title
+        representation['price'] = instance.price
         representation['images'] = instance.get_image()
         representation['tags'] = [{"id": tag.pk, "name": tag.name} for tag in tags]
         representation['reviews'] = reviews.count()
         representation['rating'] = rating
-
         return representation
 
 
@@ -41,55 +42,10 @@ class ProductSpecificationSerializer(serializers.ModelSerializer):
         fields = ('name', 'value')
 
 
-class CustomDecimalField(serializers.DecimalField):
-    def to_representation(self, value):
-        return value
-
-
-class ProductSerializer(serializers.ModelSerializer):
-    images = ProductImageSerializer(many=True, read_only=True)
-    reviews = serializers.SerializerMethodField()
-    # specifications = ProductSpecificationSerializer(many=True)
-    price = CustomDecimalField(max_digits=10, decimal_places=2)
-    tags = serializers.SlugRelatedField(
-        many=True,
-        read_only=True,
-        slug_field='name'
-    )
-    category = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Product
-        fields = '__all__'
-
-    def get_category(self, obj):
-        return str(obj.category.id)
-
-    def get_reviews(self, obj):
-        reviews = Review.objects.filter(product=obj)
-        return [
-            {
-                "author": review.author,
-                "text": review.text,
-                "date": review.date.strftime('%Y-%m-%d %H:%M'),
-                "rate": review.rate,
-            }
-            for review in reviews
-        ]
-
+class BannerListSerializer(CatalogListSerializer):
     def to_representation(self, instance):
         rep = super().to_representation(instance)
-        images = []
-        for image in rep['images']:
-            images.append(
-                {
-                    "src": image.get("image", ""),
-                    "alt": image.get("alt", ""),
-                }
+        tags = Tag.objects.filter(tags__id=instance.id)
+        rep["tags"] = [tag.name for tag in tags]
 
-            )
-        rep['images'] = images
-        rep['id'] = str(rep['id'])
         return rep
-
-

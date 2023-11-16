@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
 
 from .models import Category, Product
-from .serializers import CatalogListSerializer, ProductSerializer
+from .serializers import CatalogListSerializer, BannerListSerializer
 
 
 class CategoryListView(APIView):
@@ -131,22 +131,14 @@ class CatalogListAPIView(APIView):
         return Response(catalog_data)
 
 
-class PopularListAPIView(ListAPIView):
-    serializer_class = ProductSerializer
-
-    def get_queryset(self):
-        return Product.objects.filter(tags__name_in=['popular'])[:8]
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-
 class BannerListAPIView(ListAPIView):
-    serializer_class = ProductSerializer
+    serializer_class = BannerListSerializer
 
     def get_queryset(self):
+        """
+        Выведем на главную страницу магазина три продукта с
+        самым большим рейтингом.
+        """
         return Product.objects.filter(rating__gt=0).order_by('-rating')[:3]
 
     def list(self, request, *args, **kwargs):
@@ -154,3 +146,38 @@ class BannerListAPIView(ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+
+class PopularListAPIView(ListAPIView):
+    serializer_class = BannerListSerializer
+
+    def get_queryset(self):
+        """
+        Выведем на главную страницу заказы, наиболее часто покупаемые. Это
+        возможно будет сделать после того как заработает оформление заказов.
+        Пока же выведу один товар
+        """
+        # после реализации заказов подставить - .order_by("-countOfOrders")[:8]
+        return Product.objects.filter(count__gt=0)[:1]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class LimitedListAPIView(ListAPIView):
+    serializer_class = BannerListSerializer
+
+    def get_queryset(self):
+        """
+        Выведем на главную страницу заказы, наиболее часто покупаемые. Это
+        возможно будет сделать после того как заработает оформление заказов.
+        Пока же выведу один товар
+        """
+        # после реализации заказов подставить - .order_by("-countOfOrders")[:8]
+        return Product.objects.filter(count__gt=0)[:1]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
