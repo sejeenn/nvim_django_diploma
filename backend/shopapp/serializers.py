@@ -49,3 +49,20 @@ class BannerListSerializer(CatalogListSerializer):
         rep["tags"] = [tag.name for tag in tags]
 
         return rep
+
+
+class DetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = "__all__"
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        tags = Tag.objects.filter(tags__id=instance.id)
+        images = ProductImage.objects.filter(product__id=instance.id)
+        for img in images:
+            print(img.image)
+        rep["tags"] = [tag.name for tag in tags]
+        rep['images'] = instance.get_image()
+
+        return rep

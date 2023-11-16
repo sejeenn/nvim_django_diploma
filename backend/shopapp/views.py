@@ -5,11 +5,12 @@ from django.core.paginator import Paginator
 from rest_framework.generics import ListAPIView
 
 from rest_framework.views import APIView
+from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
 
 from .models import Category, Product
-from .serializers import CatalogListSerializer, BannerListSerializer
+from .serializers import CatalogListSerializer, BannerListSerializer, DetailsSerializer
 
 
 class CategoryListView(APIView):
@@ -170,14 +171,20 @@ class LimitedListAPIView(ListAPIView):
 
     def get_queryset(self):
         """
-        Выведем на главную страницу заказы, наиболее часто покупаемые. Это
-        возможно будет сделать после того как заработает оформление заказов.
-        Пока же выведу один товар
+        Мне пока не очень понтон определение "ограниченный тираж":
+        В блок «Ограниченный тираж» попадают до 16 товаров с галочкой
+        «ограниченный тираж». Отображаются эти товары в виде слайдера
         """
-        # после реализации заказов подставить - .order_by("-countOfOrders")[:8]
-        return Product.objects.filter(count__gt=0)[:1]
+        return Product.objects.filter(count__gt=0)[:4]
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class ProductDetailsAPIView(RetrieveAPIView):
+    queryset = Product.objects.all()
+    serializer_class = DetailsSerializer
+    lookup_url_kwarg = "id"
+
