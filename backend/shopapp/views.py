@@ -1,3 +1,6 @@
+import datetime
+import json
+
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.http import JsonResponse
@@ -9,8 +12,9 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
 
-from .models import Category, Product
+from .models import Category, Product, Review
 from .serializers import CatalogListSerializer, BannerListSerializer, DetailsSerializer
+from myauth.models import ProfileUser
 
 
 class CategoryListView(APIView):
@@ -188,3 +192,30 @@ class ProductDetailsAPIView(RetrieveAPIView):
     serializer_class = DetailsSerializer
     lookup_url_kwarg = "id"
 
+
+class ProductReviewAPIView(ProductDetailsAPIView):
+    def post(self, request, **kwargs):
+        print('kwargs: ', kwargs)
+        print('request.data', request.data)
+
+        if not request.user.is_authenticated and request.data['email'] == '':
+            author = str(request.user)
+            email = request.user + "@anymail.com"
+        profile = ProfileUser.objects.get(user=request.user)
+        product = Product.objects.get(pk=kwargs['id'])
+
+        print(profile.name, profile.surname, profile.email, product)
+        author = profile
+        email = profile.email
+        text = request.data['text']
+        rate = request.data['rate']
+
+        review = Review.objects.create(
+            author=author,
+            text=text,
+            rate=rate,
+            product=product,
+        )
+        review.save()
+
+        return Response(status=200)

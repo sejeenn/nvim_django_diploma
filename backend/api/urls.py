@@ -17,7 +17,8 @@ from shopapp.views import (
     BannerListAPIView,
     PopularListAPIView,
     LimitedListAPIView,
-    ProductDetailsAPIView
+    ProductDetailsAPIView,
+    ProductReviewAPIView,
 )
 
 urlpatterns = [
@@ -38,5 +39,5 @@ urlpatterns = [
     path('products/popular', PopularListAPIView.as_view()),
     path('products/limited', LimitedListAPIView.as_view()),
     path('product/<int:id>', ProductDetailsAPIView.as_view()),
-
+    path('product/<int:id>/reviews', ProductReviewAPIView.as_view()),
 ]
