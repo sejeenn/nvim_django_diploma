@@ -54,15 +54,38 @@ class BannerListSerializer(CatalogListSerializer):
 class DetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = "__all__"
+        fields = "category", "description", "price", "count"
 
     def to_representation(self, instance):
+        print('instance.id: ', instance.id)
         rep = super().to_representation(instance)
         tags = Tag.objects.filter(tags__id=instance.id)
-        images = ProductImage.objects.filter(product__id=instance.id)
-        for img in images:
-            print(img.image)
-        rep["tags"] = [tag.name for tag in tags]
+        specifications = Specification.objects.filter(pk=instance.id)
+        reviews = Review.objects.filter(product_id=instance.id)
+
+        rep["tags"] = [{'name': tag.name} for tag in tags]
+        rep['specifications'] = [{'name': spec.name, 'value': spec.value} for spec in specifications]
+        rep['reviews'] = [
+            {
+                'author': f'{review.author.name} {review.author.surname}',
+                'email': review.author.email,
+                'text': review.text,
+                'rate': review.rate,
+                'date': review.date.strftime("%Y.%m.%d %H:%M"),
+            }
+            for review in reviews
+        ]
         rep['images'] = instance.get_image()
 
+        print(rep)
         return rep
+
+
+class TagListSerializer(serializers.ModelSerializer):
+    """Сериализатор для представления тегов"""
+
+    id = serializers.CharField(source="name")
+
+    class Meta:
+        model = Tag
+        fields = ["id", "name"]

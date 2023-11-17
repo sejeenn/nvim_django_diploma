@@ -12,8 +12,8 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
 
-from .models import Category, Product, Review
-from .serializers import CatalogListSerializer, BannerListSerializer, DetailsSerializer
+from .models import Category, Product, Review, Tag
+from .serializers import BannerListSerializer, DetailsSerializer, TagListSerializer
 from myauth.models import ProfileUser
 
 
@@ -195,27 +195,31 @@ class ProductDetailsAPIView(RetrieveAPIView):
 
 class ProductReviewAPIView(ProductDetailsAPIView):
     def post(self, request, **kwargs):
-        print('kwargs: ', kwargs)
-        print('request.data', request.data)
+        if request.user.is_authenticated:
+            profile = ProfileUser.objects.get(user=request.user)
+            product = Product.objects.get(pk=kwargs['id'])
+            author = profile
+            text = request.data['text']
+            rate = request.data['rate']
 
-        if not request.user.is_authenticated and request.data['email'] == '':
-            author = str(request.user)
-            email = request.user + "@anymail.com"
-        profile = ProfileUser.objects.get(user=request.user)
-        product = Product.objects.get(pk=kwargs['id'])
+            review = Review.objects.create(
+                author=author,
+                text=text,
+                rate=rate,
+                product=product,
+            )
+            review.save()
+            return Response(status=200)
+        return Response(status=403)
 
-        print(profile.name, profile.surname, profile.email, product)
-        author = profile
-        email = profile.email
-        text = request.data['text']
-        rate = request.data['rate']
 
-        review = Review.objects.create(
-            author=author,
-            text=text,
-            rate=rate,
-            product=product,
-        )
-        review.save()
+class TagsListAPIView(ListAPIView):
+    serializer_class = TagListSerializer
 
-        return Response(status=200)
+    def get_queryset(self):
+        return Tag.objects.all().distinct()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

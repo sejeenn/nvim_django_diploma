@@ -84,7 +84,9 @@ class Product(models.Model):
     date = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     title = models.CharField(max_length=200, verbose_name="Название продукта")
     description = models.TextField(null=False, blank=True)
-
+    specification = models.ManyToManyField(
+        "Specification", verbose_name="Характеристика", related_name="products"
+    )
     freeDelivery = models.BooleanField(default=True)
     tags = models.ManyToManyField(Tag, verbose_name="Тег", related_name="tags")
 
