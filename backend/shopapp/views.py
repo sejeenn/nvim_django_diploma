@@ -51,12 +51,12 @@ class CatalogListAPIView(APIView):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
 
     filterset_fields = {
-        'category': ['exact'],      # точное соответствие
-        'price': ['gte', 'lte'],    # диапазон от "больше или равно" до "меньше или равно"
+        'category': ['exact'],  # точное соответствие
+        'price': ['gte', 'lte'],  # диапазон от "больше или равно" до "меньше или равно"
         'freeDelivery': ['exact'],  # точное соответствие
-        'count': ['gt'],            # больше
-        'title': ['icontains'],     # содержит (неточное определение)
-        'tags__name': ['exact'],    # точное соответствие
+        'count': ['gt'],  # больше
+        'title': ['icontains'],  # содержит (неточное определение)
+        'tags__name': ['exact'],  # точное соответствие
     }
 
     ordering_fields = [
@@ -156,12 +156,10 @@ class PopularListAPIView(ListAPIView):
 
     def get_queryset(self):
         """
-        Выведем на главную страницу заказы, наиболее часто покупаемые. Это
-        возможно будет сделать после того как заработает оформление заказов.
-        Пока же выведу один товар
+        Выведем на главную страницу заказы, имеющие тег "popular"
         """
         # после реализации заказов подставить - .order_by("-countOfOrders")[:8]
-        return Product.objects.filter(count__gt=0)[:1]
+        return Product.objects.filter(tags__name__in=['popular'])[:8]
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -174,11 +172,9 @@ class LimitedListAPIView(ListAPIView):
 
     def get_queryset(self):
         """
-        Мне пока не очень понтон определение "ограниченный тираж":
-        В блок «Ограниченный тираж» попадают до 16 товаров с галочкой
-        «ограниченный тираж». Отображаются эти товары в виде слайдера
+        Выведем на главную страницу заказы, имеющие тег "limited"
         """
-        return Product.objects.filter(count__gt=0)[:4]
+        return Product.objects.filter(tags__name__in=['limited'])[:16]
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -228,8 +224,10 @@ class SalesListAPIView(APIView):
     def get(self, request):
         page_number = int(request.GET.get('currentPage', 1))
         limit = int(request.GET.get('limit', 20))
-        sales = Sale.objects.all()
-        paginator = Paginator(sales, limit)
+        obj_list = []
+        for obj in Sale.objects.all():
+            obj_list.append(obj)
+        paginator = Paginator(obj_list, limit)
         page = paginator.get_page(page_number)
         serialized_data = []
 
@@ -241,17 +239,17 @@ class SalesListAPIView(APIView):
                 "dateFrom": sale.date_from,
                 "dateTo": sale.date_to,
                 "title": sale.product.title,
-                "images": [{"src": settings.MEDIA_URL + str(image.image), "alt": image.alt} for image in
-                           sale.product.images.all()],
+                "images": [
+                    {
+                        "src": settings.MEDIA_URL + str(image.image),
+                        "alt": sale.product.title,
+                    }
+                    for image in
+                    sale.product.images.all()],
             })
-
         response_data = {
             "items": serialized_data,
             "currentPage": page_number,
             "lastPage": paginator.num_pages
         }
-
         return Response(response_data)
-
-
-

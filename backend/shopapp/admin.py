@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import (
     Category, SubCategory,
     Product, ProductImage,
-    Tag, Review, Specification,
+    Tag, Review, Specification, Sale
 )
 
 
@@ -25,8 +25,8 @@ class SubcategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = "pk", "title"
-    list_display_links = "pk", "title"
+    list_display = "pk", "title", "price"
+    list_display_links = "pk", "title", "price"
     ordering = ("pk", )
     search_fields = ("title", )
 
@@ -53,3 +53,10 @@ class ReviewAdmin(admin.ModelAdmin):
 class SpecificationAdmin(admin.ModelAdmin):
     list_display = "pk", "name", "value"
     list_display_links = "pk", "name", "value"
+
+
+@admin.register(Sale)
+class SaleAdmin(admin.ModelAdmin):
+    list_display = "pk", "product", "date_from", "date_to", "discount"
+    list_display_links = "pk", "product", "date_from", "date_to", "discount"
+
