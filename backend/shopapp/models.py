@@ -158,3 +158,10 @@ class Specification(models.Model):
 
     def __str__(self):
         return f"{self.name}: {self.value}"
+
+
+class Sale(models.Model):
+    product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='sale_info')
+    date_from = models.DateField()
+    date_to = models.DateField()
+    discount = models.DecimalField(max_digits=10, decimal_places=2)
