@@ -272,7 +272,50 @@ class BasketAPIView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        # принимаем данные, об id товара и его количестве из запроса
         id = request.data['id']
         count = request.data['count']
-        print('request.data', request.data)
-        return Response(status=201)
+
+        # создаем объект корзины если он еще не создан
+        basket, created = Basket.objects.update_or_create(user=request.user)
+        print(basket, created)
+
+        # получаем объект продукта по его id
+        product = Product.objects.get(id=id)
+
+        # создаем объект продукта в корзине если его еще нет
+        basket_item, created = BasketItem.objects.get_or_create(basket=basket, product=product)
+        # добавляем в корзину количество (count) выбранного товара
+        basket_item.quantity = count
+        print(basket_item, created)
+        basket_item.save()
+
+        # получаем обновленные данные корзины, передаем в сериализатор
+        # где они обрабатываются и возвращаются для отображения на страничке
+        basket_items = BasketItem.objects.filter(basket=basket)
+        serializer = BasketItemSerializer(basket_items, many=True)
+
+        return Response(serializer.data, status=201)
+
+    def delete(self, request):
+        id = request.data['id']
+        count = request.data['count']
+
+        # получаем объект, который хотим удалить
+        basket = request.user.basket
+        # получаем продукт, который хотим удалить из корзины
+        product = Product.objects.get(id=id)
+        # получаем товар в корзине для удаления
+        basket_item = BasketItem.objects.get(basket=basket, product=product)
+        if basket_item.quantity > count:
+            basket_item.quantity -= count   # будем нажимать кнопку "минус" до тех пор пока не будет 0
+            basket_item.save()
+        else:
+            basket_item.delete()
+
+        # получаем обновленные данные корзины, передаем в сериализатор
+        # где они обрабатываются и возвращаются для отображения на страничке
+        basket_items = BasketItem.objects.filter(basket=basket)
+        serializer = BasketItemSerializer(basket_items, many=True)
+
+        return Response(serializer.data)

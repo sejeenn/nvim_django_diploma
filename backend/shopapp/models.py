@@ -177,7 +177,7 @@ class Basket(models.Model):
         Модель корзины, связанная с пользователем,
         имеющая дату её создания
     """
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
