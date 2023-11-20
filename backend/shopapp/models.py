@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 from myauth.models import ProfileUser
+from django.contrib.auth.models import User
 
 
 def category_image_directory_path(instance: "Category", filename: str):
@@ -161,7 +162,32 @@ class Specification(models.Model):
 
 
 class Sale(models.Model):
+    """
+    Модель товаров, подлежащих распродаже с какого-то по какое-то числа,
+    с такой-то скидкой
+    """
     product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='sale_info')
     date_from = models.DateField()
     date_to = models.DateField()
     discount = models.DecimalField(max_digits=10, decimal_places=2)
+
+
+class Basket(models.Model):
+    """
+        Модель корзины, связанная с пользователем,
+        имеющая дату её создания
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class BasketItem(models.Model):
+    """
+        Модель корзины с товарами, имеющая какое-то количество товаров,
+        по умолчанию - 1 товар.
+    """
+    basket = models.ForeignKey(Basket, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="products")
+    quantity = models.PositiveIntegerField(default=1)
+
+

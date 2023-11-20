@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Product, Tag, Review, ProductImage, Specification
+    Product, Tag, Review, ProductImage, Specification, BasketItem
 )
 
 
@@ -75,3 +75,19 @@ class DetailsSerializer(ProductSerializer):
             for review in reviews
         ]
         return rep
+
+
+class BasketItemSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для представления корзины и продуктов в ней
+    """
+    class Meta:
+        model = BasketItem
+        fields = (
+            "product", "count",
+        )
+
+    def to_representation(self, instance):
+        data = ProductSerializer(instance.product).data
+        data['count'] = instance.quantity
+        return data

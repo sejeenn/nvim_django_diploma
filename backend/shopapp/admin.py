@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import (
     Category, SubCategory,
     Product, ProductImage,
-    Tag, Review, Specification, Sale
+    Tag, Review, Specification, Sale, BasketItem, Basket
 )
 
 
@@ -59,4 +59,16 @@ class SpecificationAdmin(admin.ModelAdmin):
 class SaleAdmin(admin.ModelAdmin):
     list_display = "pk", "product", "date_from", "date_to", "discount"
     list_display_links = "pk", "product", "date_from", "date_to", "discount"
+
+
+@admin.register(Basket)
+class BasketAdmin(admin.ModelAdmin):
+    list_display = "pk", "user", "created_at"
+    list_display_links = "pk", "user", "created_at"
+
+
+@admin.register(BasketItem)
+class BasketItemAdmin(admin.ModelAdmin):
+    list_display = "pk", "product", "basket", "quantity"
+    list_display_links = "pk", "product", "basket", "quantity"
 

@@ -1,19 +1,25 @@
 import datetime
 import json
 
+from django.contrib.auth.models import User
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from rest_framework.generics import ListAPIView
 
+from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
 
-from .models import Category, Product, Review, Tag, Sale
-from .serializers import DetailsSerializer, TagListSerializer, ProductSerializer
+from .models import Category, Product, Review, Tag, Sale, Basket, BasketItem
+from .serializers import (
+    DetailsSerializer,
+    TagListSerializer,
+    ProductSerializer,
+    BasketItemSerializer,
+)
 from myauth.models import ProfileUser
 
 
@@ -253,3 +259,20 @@ class SalesListAPIView(APIView):
             "lastPage": paginator.num_pages
         }
         return Response(response_data)
+
+
+class BasketAPIView(APIView):
+    def get(self, request):
+        """
+        Вывод информации о товарах в корзине
+        """
+        queryset = BasketItem.objects.filter(basket__user=request.user)
+        serializer = BasketItemSerializer(queryset, many=True)
+
+        return Response(serializer.data)
+
+    def post(self, request):
+        id = request.data['id']
+        count = request.data['count']
+        print('request.data', request.data)
+        return Response(status=201)
