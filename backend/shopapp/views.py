@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
+from rest_framework.permissions import AllowAny
 
 from .models import Category, Product, Review, Tag, Sale, Basket, BasketItem
 from .serializers import (
@@ -262,10 +263,16 @@ class SalesListAPIView(APIView):
 
 
 class BasketAPIView(APIView):
+
     def get(self, request):
         """
         Вывод информации о товарах в корзине
         """
+
+        if request.user.is_anonymous:
+            anon_user = User.objects.get(username="anonymous")
+            request.user = User.objects.get(id=anon_user.id)
+
         queryset = BasketItem.objects.filter(basket__user=request.user)
         serializer = BasketItemSerializer(queryset, many=True)
 
@@ -276,18 +283,23 @@ class BasketAPIView(APIView):
         id = request.data['id']
         count = request.data['count']
 
-        # создаем объект корзины если он еще не создан
-        basket, created = Basket.objects.update_or_create(user=request.user)
-        print(basket, created)
+        # если вход не осуществлен, то назначаем пользователя по-умолчанию
+        if request.user.is_anonymous:
+            anon_user = User.objects.get(username="anonymous")
+            basket, created = Basket.objects.update_or_create(user=anon_user)
+            basket = Basket.objects.get(user=anon_user)
+        else:
+            try:
+                basket = request.user.basket
+            except Basket.DoesNotExist:
+                basket = Basket.objects.create(user=request.user)
 
         # получаем объект продукта по его id
         product = Product.objects.get(id=id)
-
         # создаем объект продукта в корзине если его еще нет
         basket_item, created = BasketItem.objects.get_or_create(basket=basket, product=product)
         # добавляем в корзину количество (count) выбранного товара
         basket_item.quantity = count
-        print(basket_item, created)
         basket_item.save()
 
         # получаем обновленные данные корзины, передаем в сериализатор
@@ -301,21 +313,27 @@ class BasketAPIView(APIView):
         id = request.data['id']
         count = request.data['count']
 
-        # получаем объект, который хотим удалить
-        basket = request.user.basket
-        # получаем продукт, который хотим удалить из корзины
-        product = Product.objects.get(id=id)
-        # получаем товар в корзине для удаления
-        basket_item = BasketItem.objects.get(basket=basket, product=product)
-        if basket_item.quantity > count:
-            basket_item.quantity -= count   # будем нажимать кнопку "минус" до тех пор пока не будет 0
-            basket_item.save()
-        else:
-            basket_item.delete()
+        try:
+            if request.user.is_anonymous:
+                anon_user = User.objects.get(username="anonymous")
+                request.user = User.objects.get(id=anon_user.id)
+            # получаем объект, который хотим удалить
+            basket = request.user.basket
+            # получаем продукт, который хотим удалить из корзины
+            product = Product.objects.get(id=id)
+            # получаем товар в корзине для удаления
+            basket_item = BasketItem.objects.get(basket=basket, product=product)
+            if basket_item.quantity > count:
+                basket_item.quantity -= count   # будем нажимать кнопку "минус" до тех пор пока не будет 0
+                basket_item.save()
+            else:
+                basket_item.delete()
 
-        # получаем обновленные данные корзины, передаем в сериализатор
-        # где они обрабатываются и возвращаются для отображения на страничке
-        basket_items = BasketItem.objects.filter(basket=basket)
-        serializer = BasketItemSerializer(basket_items, many=True)
+            # получаем обновленные данные корзины, передаем в сериализатор
+            # где они обрабатываются и возвращаются для отображения на страничке
+            basket_items = BasketItem.objects.filter(basket=basket)
+            serializer = BasketItemSerializer(basket_items, many=True)
 
-        return Response(serializer.data)
+            return Response(serializer.data)
+        except Basket.DoesNotExist:
+            return Response("Товары в корзине не найдены", status=404)

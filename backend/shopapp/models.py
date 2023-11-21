@@ -177,6 +177,7 @@ class Basket(models.Model):
         Модель корзины, связанная с пользователем,
         имеющая дату её создания
     """
+    DoesNotExist = "Корзины пока не существует"
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -189,5 +190,4 @@ class BasketItem(models.Model):
     basket = models.ForeignKey(Basket, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="products")
     quantity = models.PositiveIntegerField(default=1)
-
 
