@@ -97,6 +97,7 @@ class Product(models.Model):
         default=0.00,
         validators=[MinValueValidator(0), MaxValueValidator(5)],
     )
+    count_of_orders = models.IntegerField(default=0)
 
     def get_image(self):
         """
@@ -191,3 +192,19 @@ class BasketItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="products")
     quantity = models.PositiveIntegerField(default=1)
 
+
+class Order(models.Model):
+    class Meta:
+        verbose_name = "Заказ"
+        verbose_name_plural = "Заказы"
+
+    full_name = models.ForeignKey(ProfileUser, on_delete=models.CASCADE, verbose_name="Покупатель")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    PAYMENT_OPTIONS = (
+        ("online", "оплата онлайн"),
+        ("card", "оплата картой"),
+    )
+    DELIVERY_OPTIONS = (
+        ("delivery", "")
+    )

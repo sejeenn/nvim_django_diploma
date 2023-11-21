@@ -337,3 +337,38 @@ class BasketAPIView(APIView):
             return Response(serializer.data)
         except Basket.DoesNotExist:
             return Response("Товары в корзине не найдены", status=404)
+
+
+class OrdersAPIView(APIView):
+    def get(self, request):
+        dt = [
+            {
+                "id": 1,
+                "createdAt": "2023-05-05 12:30",
+                "fullName": "Eugene Vorontsov",
+                "email": "sejeenn@gmail.com",
+                "phone": "+79021927559",
+                "deliveryType": "free",
+                "paymentType": "online",
+                "totalCost": 23.1,
+                "status": 'accepted',
+                'city': "Северодвинск",
+                "address": "Железнодорожная ул. 21",
+                "products": [
+                    {
+                        "id": 1,
+                        "category": 1,
+
+                    }
+
+                ]
+            }
+        ]
+        return Response(dt)
+
+    def post(self, request):
+        basket_items = BasketItem.objects.filter(basket__user=request.user)
+        for item in basket_items:
+            print(Product.objects.get(pk=item.product.pk))
+
+        return Response(status=201)
