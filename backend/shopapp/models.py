@@ -200,11 +200,7 @@ class Order(models.Model):
 
     full_name = models.ForeignKey(ProfileUser, on_delete=models.CASCADE, verbose_name="Покупатель")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    products = models.ManyToManyField(Product, related_name="orders")
+    city = models.CharField(null=True, blank=True)
+    delivery_address = models.TextField(null=True, blank=True)
 
-    PAYMENT_OPTIONS = (
-        ("online", "оплата онлайн"),
-        ("card", "оплата картой"),
-    )
-    DELIVERY_OPTIONS = (
-        ("delivery", "")
-    )
