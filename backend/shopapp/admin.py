@@ -3,7 +3,8 @@ from django.contrib import admin
 from .models import (
     Category, SubCategory,
     Product, ProductImage,
-    Tag, Review, Specification, Sale, BasketItem, Basket
+    Tag, Review, Specification, Sale,
+    BasketItem, Basket, Order
 )
 
 
@@ -71,4 +72,10 @@ class BasketAdmin(admin.ModelAdmin):
 class BasketItemAdmin(admin.ModelAdmin):
     list_display = "pk", "product", "basket", "quantity"
     list_display_links = "pk", "product", "basket", "quantity"
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = "pk", "created_at", "city", "delivery_address"
+    list_display_link = "pk", "created_at", "city", "delivery_address"
 

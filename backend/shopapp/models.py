@@ -197,10 +197,31 @@ class Order(models.Model):
     class Meta:
         verbose_name = "Заказ"
         verbose_name_plural = "Заказы"
+    DELIVERY_OPTIONS = (
+        ("delivery", "Доставка"),
+        ("express", "Экспресс доставка"),
+    )
+    PAYMENT_OPTIONS = (
+        ("online", "Онлайн оплата"),
+        ("online_any", "Онлайн оплата со случайного счета"),
+
+    )
 
     full_name = models.ForeignKey(ProfileUser, on_delete=models.CASCADE, verbose_name="Покупатель")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     products = models.ManyToManyField(Product, related_name="orders")
-    city = models.CharField(null=True, blank=True)
-    delivery_address = models.TextField(null=True, blank=True)
-
+    city = models.CharField(max_length=100, verbose_name="Город доставки")
+    delivery_address = models.TextField(max_length=200, verbose_name="Адрес доставки")
+    delivery_type = models.CharField(max_length=20, choices=DELIVERY_OPTIONS, default="Доставка")
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_OPTIONS, default="Онлайн оплата")
+    totalCost = models.DecimalField(
+        default=0,
+        max_digits=8,
+        decimal_places=2,
+        verbose_name="Итоговая сумма заказа",
+    )
+    status = models.CharField(max_length=255, default="inProgress")
+    basket = models.ForeignKey(
+        Basket, on_delete=models.CASCADE, related_name="orders", default=None
+    )
+    payment_error = models.CharField(max_length=255, blank=True, default="")
