@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import AllowAny
 
-from .models import Category, Product, Review, Tag, Sale, Basket, BasketItem, DeliveryPrice, Order
+from .models import Category, Product, Review, Tag, Sale, Basket, BasketItem, DeliveryPrice, Order, Payment
 from .serializers import (
     DetailsSerializer,
     TagListSerializer,
@@ -400,3 +400,32 @@ class OrderDetailAPIView(APIView):
         response_data = {"orderId": order.id}
         return Response(response_data, status=200)
 
+
+class PaymentAPIView(APIView):
+    def post(self, request, order_id):
+        data = json.loads(request.data)
+        card_number = data['number']
+        expiration_month = data['month']
+        expiration_year = data['year']
+        cvv_code = data['code']
+        card_holder_name = data['name']
+        current_year = datetime.datetime.now().year % 100
+
+        if int(expiration_year) < current_year or (
+                int(expiration_year == current_year) and int(expiration_month) < datetime.datetime.now().month):
+            order = Order.objects.get(id=order_id)
+            order.payment_error = "Payment expired"
+            order.save()
+            return JsonResponse({"error": "Payment expired"}, status=400)
+
+        if len(card_number.strip()) > 8 and int(card_number) % 2 != 0:
+            return JsonResponse({"error": "Incorrect card number"}, status=400)
+
+        res_date = f"{expiration_month}.{expiration_year}"
+        order = Order.objects.get(id=order_id)
+        payment = Payment.objects.create(order=order, card_number=card_number, validity_period=res_date)
+        order.status = 'paid'
+        order.save()
+
+        print(request.data)
+        return Response(status=200)

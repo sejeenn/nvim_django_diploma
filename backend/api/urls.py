@@ -25,6 +25,7 @@ from shopapp.views import (
 
     CreateOrderAPIView,
     OrderDetailAPIView,
+    PaymentAPIView,
 )
 
 urlpatterns = [
@@ -52,4 +53,5 @@ urlpatterns = [
 
     path('orders', CreateOrderAPIView.as_view()),
     path('order/<int:order_id>', OrderDetailAPIView.as_view()),
+    path('payment/<int:order_id>', PaymentAPIView.as_view()),
 ]

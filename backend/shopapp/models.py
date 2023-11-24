@@ -251,3 +251,10 @@ class DeliveryPrice(models.Model):
         decimal_places=2,
         verbose_name="Наименьшая сумма для бесплатной доставки",
     )
+
+
+class Payment(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="pay_order")
+    card_number = models.CharField(max_length=16)
+    validity_period = models.CharField(max_length=20)
+    success = models.BooleanField(default=False)
