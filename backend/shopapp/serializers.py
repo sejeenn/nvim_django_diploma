@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Product, Tag, Review, ProductImage, Specification, BasketItem
+    Product, Tag, Review, ProductImage, Specification, BasketItem, Order
 )
 
 
@@ -90,4 +90,41 @@ class BasketItemSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = ProductSerializer(instance.product).data
         data['count'] = instance.quantity
+        return data
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        profile = instance.full_name
+        products = instance.basket.baskets.all()
+
+        data = {
+            "id": instance.pk,
+            "createdAt": instance.created_at.strftime("%Y.%m.%d %H:%M"),
+            "fullName": f"{profile.surname} {profile.name} {profile.patronymic}",
+            "email": profile.email,
+            "phone": profile.phone,
+            "deliveryType": instance.delivery_type,
+            "paymentType": instance.payment_type,
+            "totalCost": instance.totalCost,
+            "status": instance.status,
+            "city": instance.city,
+            "address": instance.delivery_address,
+            "products": [{
+                "id": product.pk,
+                "category": product.category,
+                "price": product.price,
+                "count": product.count,
+                "data": product.date.strftime("%Y.%m.%d %H:%M"),
+                "title": product.title,
+                "description": product.description,
+                "freeDelivery": product.freeDelivery,
+                "images": ""
+            } for product in products]
+        }
+        print(data)
         return data

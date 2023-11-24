@@ -14,12 +14,13 @@ from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import AllowAny
 
-from .models import Category, Product, Review, Tag, Sale, Basket, BasketItem
+from .models import Category, Product, Review, Tag, Sale, Basket, BasketItem, DeliveryPrice, Order
 from .serializers import (
     DetailsSerializer,
     TagListSerializer,
     ProductSerializer,
     BasketItemSerializer,
+    OrderSerializer,
 )
 from myauth.models import ProfileUser
 
@@ -339,36 +340,42 @@ class BasketAPIView(APIView):
             return Response("Товары в корзине не найдены", status=404)
 
 
-class OrdersAPIView(APIView):
-    def get(self, request):
-        dt = [
-            {
-                "id": 1,
-                "createdAt": "2023-05-05 12:30",
-                "fullName": "Eugene Vorontsov",
-                "email": "sejeenn@gmail.com",
-                "phone": "+79021927559",
-                "deliveryType": "free",
-                "paymentType": "online",
-                "totalCost": 23.1,
-                "status": 'accepted',
-                'city': "Северодвинск",
-                "address": "Железнодорожная ул. 21",
-                "products": [
-                    {
-                        "id": 1,
-                        "category": 1,
-
-                    }
-
-                ]
-            }
-        ]
-        return Response(dt)
-
+class CreateOrderAPIView(APIView):
     def post(self, request):
-        basket_items = BasketItem.objects.filter(basket__user=request.user)
-        for item in basket_items:
-            print(Product.objects.get(pk=item.product.pk))
+        try:
+            basket = request.user.basket
+            profile = ProfileUser.objects.get(user=request.user)
+            basket_items = BasketItem.objects.filter(basket__user=request.user)
+            total_cost = 0
+            order = Order.objects.create(
+                full_name=profile,
+                basket=basket,
+            )
+            for item in basket_items:
+                product = Product.objects.get(pk=item.product.pk)
+                product.count_of_orders = item.quantity
+                total_cost += item.product.price * item.quantity
+                product.save()
+            delivery_price = DeliveryPrice.objects.get(id=1)
+            if total_cost > delivery_price.delivery_free_minimum_cost:
+                order.totalCost = total_cost
+            else:
+                order.totalCost = total_cost + delivery_price.delivery_cost
+            order.save()
+            response_data = {"orderId": order.pk}
+            return JsonResponse(response_data)
+        except Basket.DoesNotExist:
+            error_data = {"error": "У данного пользователя пока нет 'корзины'"}
+            return JsonResponse(error_data)
 
-        return Response(status=201)
+
+class OrderDetailAPIView(APIView):
+    def get(self, request, order_id):
+        order = Order.objects.get(pk=order_id)
+        serializer = OrderSerializer(order)
+        return JsonResponse(serializer.data)
+
+    def post(self, request, order_id):
+        print(request.data)
+        return Response(status=200)
+

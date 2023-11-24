@@ -188,7 +188,7 @@ class BasketItem(models.Model):
         Модель корзины с товарами, имеющая какое-то количество товаров,
         по умолчанию - 1 товар.
     """
-    basket = models.ForeignKey(Basket, on_delete=models.CASCADE)
+    basket = models.ForeignKey(Basket, on_delete=models.CASCADE, related_name="baskets")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="products")
     quantity = models.PositiveIntegerField(default=1)
 
@@ -225,3 +225,29 @@ class Order(models.Model):
         Basket, on_delete=models.CASCADE, related_name="orders", default=None
     )
     payment_error = models.CharField(max_length=255, blank=True, default="")
+
+
+class DeliveryPrice(models.Model):
+    class Meta:
+        verbose_name = "Стоимость доставки"
+
+    delivery_cost = models.DecimalField(
+        default=0,
+        max_digits=8,
+        decimal_places=2,
+        verbose_name="Стоимость доставки",
+    )
+
+    delivery_express_cost = models.DecimalField(
+        default=0,
+        max_digits=8,
+        decimal_places=2,
+        verbose_name="Стоимость экспресс доставки",
+    )
+
+    delivery_free_minimum_cost = models.DecimalField(
+        default=0,
+        max_digits=8,
+        decimal_places=2,
+        verbose_name="Наименьшая сумма для бесплатной доставки",
+    )
