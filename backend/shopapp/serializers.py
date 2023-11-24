@@ -115,16 +115,20 @@ class OrderSerializer(serializers.ModelSerializer):
             "city": instance.city,
             "address": instance.delivery_address,
             "products": [{
-                "id": product.pk,
-                "category": product.category,
-                "price": product.price,
-                "count": product.count,
-                "data": product.date.strftime("%Y.%m.%d %H:%M"),
-                "title": product.title,
-                "description": product.description,
-                "freeDelivery": product.freeDelivery,
-                "images": ""
-            } for product in products]
+                "id": item.product.pk,
+                "category": item.product.category.pk,
+                "price": item.product.price,
+                "count": item.product.count,
+                "data": item.product.date.strftime("%Y.%m.%d %H:%M"),
+                "title": item.product.title,
+                "description": item.product.description,
+                "freeDelivery": item.product.freeDelivery,
+                "images": item.product.get_image(),
+                "tags": [{"id": tag.pk, "name": tag.name} for tag in item.product.tags.all()],
+                "reviews": Review.objects.filter(product_id=item.product.id).count(),
+                "rating": float(item.product.rating),
+            } for item in products],
+
         }
         print(data)
         return data

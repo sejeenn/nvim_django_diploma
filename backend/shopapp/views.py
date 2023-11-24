@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404
 
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
@@ -376,6 +377,26 @@ class OrderDetailAPIView(APIView):
         return JsonResponse(serializer.data)
 
     def post(self, request, order_id):
-        print(request.data)
-        return Response(status=200)
+        order = get_object_or_404(Order, id=order_id)
+
+        delivery_type = request.data["deliveryType"]
+        payment_type = request.data["paymentType"]
+        city = request.data["city"]
+        address = request.data["address"]
+        status_order = "accepted"
+
+        if delivery_type == "express":
+            delivery_price = DeliveryPrice.objects.get(id=1)
+            order.totalCost += delivery_price.delivery_express_cost
+            order.save()
+
+        order.delivery_type = delivery_type
+        order.payment_type = payment_type
+        order.city = city
+        order.address = address
+        order.status = status_order
+        order.save()
+
+        response_data = {"orderId": order.id}
+        return Response(response_data, status=200)
 
