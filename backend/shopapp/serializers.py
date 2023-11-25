@@ -130,5 +130,4 @@ class OrderSerializer(serializers.ModelSerializer):
             } for item in products],
 
         }
-        print(data)
         return data

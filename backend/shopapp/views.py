@@ -4,7 +4,7 @@ import json
 from django.contrib.auth.models import User
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
 
@@ -402,6 +402,11 @@ class OrderDetailAPIView(APIView):
 
 
 class PaymentAPIView(APIView):
+    def get(self, request, order_id):
+        payment = get_object_or_404(Payment, order__id=order_id)
+        order = get_object_or_404(Order, id=order_id)
+        return JsonResponse({"status": order.status})
+
     def post(self, request, order_id):
         data = json.loads(request.data)
         card_number = data['number']
@@ -419,13 +424,23 @@ class PaymentAPIView(APIView):
             return JsonResponse({"error": "Payment expired"}, status=400)
 
         if len(card_number.strip()) > 8 and int(card_number) % 2 != 0:
-            return JsonResponse({"error": "Incorrect card number"}, status=400)
+            return JsonResponse({"error": "Неверный номер банковской карты"}, status=400)
 
         res_date = f"{expiration_month}.{expiration_year}"
         order = Order.objects.get(id=order_id)
         payment = Payment.objects.create(order=order, card_number=card_number, validity_period=res_date)
         order.status = 'paid'
         order.save()
+        # заказ оплачен
 
+        basket = Basket.objects.get(user=request.user)
+        basket_items = BasketItem.objects.filter(basket=basket)
+        for basket_item in basket_items:
+            product = Product.objects.get(pk=basket_item.product.pk)
+            if product.count < basket_item.quantity:
+                return JsonResponse({"error": "Недостаточно товаров в наличии"}, status=400)
+            product.count -= basket_item.quantity
+            product.save()
+        basket_items.delete()
         print(request.data)
-        return Response(status=200)
+        return HttpResponse(status=200)
