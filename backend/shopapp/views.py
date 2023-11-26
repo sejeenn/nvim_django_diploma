@@ -1,19 +1,28 @@
 import datetime
 import json
 
+from django.contrib.auth.models import User
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
-from rest_framework.generics import ListAPIView
+from django.shortcuts import get_object_or_404
 
+from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
+from rest_framework.permissions import AllowAny
 
-from .models import Category, Product, Review, Tag, Sale
-from .serializers import DetailsSerializer, TagListSerializer, ProductSerializer
+from .models import Category, Product, Review, Tag, Sale, Basket, BasketItem, DeliveryPrice, Order, Payment
+from .serializers import (
+    DetailsSerializer,
+    TagListSerializer,
+    ProductSerializer,
+    BasketItemSerializer,
+    OrderSerializer,
+)
 from myauth.models import ProfileUser
 
 
@@ -253,3 +262,189 @@ class SalesListAPIView(APIView):
             "lastPage": paginator.num_pages
         }
         return Response(response_data)
+
+
+class BasketAPIView(APIView):
+
+    def get(self, request):
+        """
+        Вывод информации о товарах в корзине
+        """
+
+        if request.user.is_anonymous:
+            anon_user = User.objects.get(username="anonymous")
+            request.user = User.objects.get(id=anon_user.id)
+
+        queryset = BasketItem.objects.filter(basket__user=request.user)
+        serializer = BasketItemSerializer(queryset, many=True)
+
+        return Response(serializer.data)
+
+    def post(self, request):
+        # принимаем данные, об id товара и его количестве из запроса
+        id = request.data['id']
+        count = request.data['count']
+
+        # если вход не осуществлен, то назначаем пользователя по-умолчанию
+        if request.user.is_anonymous:
+            anon_user = User.objects.get(username="anonymous")
+            basket, created = Basket.objects.update_or_create(user=anon_user)
+            basket = Basket.objects.get(user=anon_user)
+        else:
+            try:
+                basket = request.user.basket
+            except Basket.DoesNotExist:
+                basket = Basket.objects.create(user=request.user)
+
+        # получаем объект продукта по его id
+        product = Product.objects.get(id=id)
+        # создаем объект продукта в корзине если его еще нет
+        basket_item, created = BasketItem.objects.get_or_create(basket=basket, product=product)
+        if not created:
+            basket_item.quantity += count
+            basket_item.save()
+
+        # получаем обновленные данные корзины, передаем в сериализатор
+        # где они обрабатываются и возвращаются для отображения на страничке
+        basket_items = BasketItem.objects.filter(basket=basket)
+        serializer = BasketItemSerializer(basket_items, many=True)
+
+        return Response(serializer.data, status=201)
+
+    def delete(self, request):
+        id = request.data['id']
+        count = request.data['count']
+
+        try:
+            if request.user.is_anonymous:
+                anon_user = User.objects.get(username="anonymous")
+                request.user = User.objects.get(id=anon_user.id)
+            # получаем объект, который хотим удалить
+            basket = request.user.basket
+            # получаем продукт, который хотим удалить из корзины
+            product = Product.objects.get(id=id)
+            # получаем товар в корзине для удаления
+            basket_item = BasketItem.objects.get(basket=basket, product=product)
+            if basket_item.quantity > count:
+                basket_item.quantity -= count   # будем нажимать кнопку "минус" до тех пор пока не будет 0
+                basket_item.save()
+            else:
+                basket_item.delete()
+
+            # получаем обновленные данные корзины, передаем в сериализатор
+            # где они обрабатываются и возвращаются для отображения на страничке
+            basket_items = BasketItem.objects.filter(basket=basket)
+            serializer = BasketItemSerializer(basket_items, many=True)
+
+            return Response(serializer.data)
+        except Basket.DoesNotExist:
+            return Response("Товары в корзине не найдены", status=404)
+
+
+class CreateOrderAPIView(APIView):
+    def post(self, request):
+        try:
+            basket = request.user.basket
+            profile = ProfileUser.objects.get(user=request.user)
+            basket_items = BasketItem.objects.filter(basket__user=request.user)
+            total_cost = 0
+            order = Order.objects.create(
+                full_name=profile,
+                basket=basket,
+            )
+            for item in basket_items:
+                product = Product.objects.get(pk=item.product.pk)
+                product.count_of_orders = item.quantity
+                total_cost += item.product.price * item.quantity
+                product.save()
+            delivery_price = DeliveryPrice.objects.get(id=1)
+            if total_cost > delivery_price.delivery_free_minimum_cost:
+                order.totalCost = total_cost
+            else:
+                order.totalCost = total_cost + delivery_price.delivery_cost
+            order.save()
+            response_data = {"orderId": order.pk}
+            return JsonResponse(response_data)
+        except Basket.DoesNotExist:
+            error_data = {"error": "У данного пользователя пока нет 'корзины'"}
+            return JsonResponse(error_data)
+
+
+class OrderDetailAPIView(APIView):
+    def get(self, request, order_id):
+        order = Order.objects.get(pk=order_id)
+        serializer = OrderSerializer(order)
+        return JsonResponse(serializer.data)
+
+    def post(self, request, order_id):
+        order = get_object_or_404(Order, id=order_id)
+
+        delivery_type = request.data["deliveryType"]
+        payment_type = request.data["paymentType"]
+        city = request.data["city"]
+        address = request.data["address"]
+        status_order = "accepted"
+
+        if delivery_type == "express":
+            delivery_price = DeliveryPrice.objects.get(id=1)
+            order.totalCost += delivery_price.delivery_express_cost
+            order.save()
+
+        order.delivery_type = delivery_type
+        order.payment_type = payment_type
+        order.city = city
+        order.address = address
+        order.status = status_order
+        order.save()
+
+        response_data = {"orderId": order.id}
+        return Response(response_data, status=200)
+
+
+class PaymentAPIView(APIView):
+    def get(self, request, order_id):
+        payment = get_object_or_404(Payment, order__id=order_id)
+        order = get_object_or_404(Order, id=order_id)
+        return JsonResponse({"status": order.status})
+
+    def post(self, request, order_id):
+        data = request.data
+        card_number = data['number']
+        expiration_month = data['month']
+        expiration_year = data['year']
+        cvv_code = data['code']
+        card_holder_name = data['name']
+        current_year = datetime.datetime.now().year % 100
+
+        if int(expiration_year) < current_year or (
+                int(expiration_year == current_year) and int(expiration_month) < datetime.datetime.now().month):
+            order = Order.objects.get(id=order_id)
+            order.payment_error = "Payment expired"
+            order.save()
+            print("payment expired")
+            return JsonResponse({"error": "Payment expired"}, status=500)
+
+        if len(card_number.strip()) > 8 and int(card_number) % 2 != 0:
+            print("card invalid")
+            return JsonResponse({"error": "Неверный номер банковской карты"}, status=400)
+
+        res_date = f"{expiration_month}.{expiration_year}"
+        order = Order.objects.get(id=order_id)
+        payment = Payment.objects.create(order=order, card_number=card_number, validity_period=res_date)
+        order.status = 'paid'
+        order.save()
+        # заказ оплачен
+
+        basket = Basket.objects.get(user=request.user)
+        basket_items = BasketItem.objects.filter(basket=basket)
+        for basket_item in basket_items:
+            product = Product.objects.get(pk=basket_item.product.pk)
+            if product.count < basket_item.quantity:
+                print("недостаточно товаров")
+                return JsonResponse({"error": "Недостаточно товаров в наличии"}, status=400)
+            product.count -= basket_item.quantity
+            product.save()
+            payment.success = True
+            payment.save()
+        basket_items.delete()
+        return HttpResponse(status=200)
