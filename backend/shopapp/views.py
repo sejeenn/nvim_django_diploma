@@ -300,9 +300,9 @@ class BasketAPIView(APIView):
         product = Product.objects.get(id=id)
         # создаем объект продукта в корзине если его еще нет
         basket_item, created = BasketItem.objects.get_or_create(basket=basket, product=product)
-        # добавляем в корзину количество (count) выбранного товара
-        basket_item.quantity = count
-        basket_item.save()
+        if not created:
+            basket_item.quantity += count
+            basket_item.save()
 
         # получаем обновленные данные корзины, передаем в сериализатор
         # где они обрабатываются и возвращаются для отображения на страничке
@@ -408,7 +408,7 @@ class PaymentAPIView(APIView):
         return JsonResponse({"status": order.status})
 
     def post(self, request, order_id):
-        data = json.loads(request.data)
+        data = request.data
         card_number = data['number']
         expiration_month = data['month']
         expiration_year = data['year']
@@ -421,9 +421,11 @@ class PaymentAPIView(APIView):
             order = Order.objects.get(id=order_id)
             order.payment_error = "Payment expired"
             order.save()
-            return JsonResponse({"error": "Payment expired"}, status=400)
+            print("payment expired")
+            return JsonResponse({"error": "Payment expired"}, status=500)
 
         if len(card_number.strip()) > 8 and int(card_number) % 2 != 0:
+            print("card invalid")
             return JsonResponse({"error": "Неверный номер банковской карты"}, status=400)
 
         res_date = f"{expiration_month}.{expiration_year}"
@@ -438,9 +440,11 @@ class PaymentAPIView(APIView):
         for basket_item in basket_items:
             product = Product.objects.get(pk=basket_item.product.pk)
             if product.count < basket_item.quantity:
+                print("недостаточно товаров")
                 return JsonResponse({"error": "Недостаточно товаров в наличии"}, status=400)
             product.count -= basket_item.quantity
             product.save()
+            payment.success = True
+            payment.save()
         basket_items.delete()
-        print(request.data)
         return HttpResponse(status=200)

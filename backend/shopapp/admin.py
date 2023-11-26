@@ -4,7 +4,7 @@ from .models import (
     Category, SubCategory,
     Product, ProductImage,
     Tag, Review, Specification, Sale,
-    BasketItem, Basket, Order, DeliveryPrice
+    BasketItem, Basket, Order, DeliveryPrice, Payment
 )
 
 
@@ -85,3 +85,8 @@ class DeliveryPriceAdmin(admin.ModelAdmin):
     list_display = "pk", "delivery_cost", "delivery_express_cost", "delivery_free_minimum_cost"
     list_display_links = "pk", "delivery_cost", "delivery_express_cost", "delivery_free_minimum_cost"
 
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = "pk", "order", "card_number", "success"
+    list_display_links = "pk", "order", "card_number"
